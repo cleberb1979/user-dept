@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:  
+  postgres_server:
+    container_name: user_dept
+    image: postgres:latest    
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATA: /data/postgres
+    volumes:
+       - postgres:/data/postgres
+    ports:
+      - "8081:8081"
+    networks:
+      - micro-net
+    restart: unless-stopped
+  user_dept: 
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+       - pgadmin:/var/lib/pgadmin
+    expose:
+      - 8080
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - micro-net
+    restart: unless-stopped
+networks:   
+  micro-net:
+    name: micro-space-network
+    driver: bridge
+volumes:
+    postgres:
+    pgadmin:

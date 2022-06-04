@@ -1,9 +1,9 @@
 package com.userdept.userdept.controllers;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.userdept.userdept.entities.User;
-import com.userdept.userdept.exceptions.DataIntegrityException;
 import com.userdept.userdept.repositories.UserRepository;
 
 @RestController
@@ -28,15 +27,17 @@ public class UserController {
     private UserRepository repository;
 
     @GetMapping
-    public List<User> findAll(){
+        public List<User> findAll(){
         List<User> result = repository.findAll();
         return result;
     }
 
     @GetMapping(value = "/{id}")
     public User findById(@PathVariable Long id){
-        User result = repository.findById(id).get();
-        return result;
+        /* User result = repository.findById(id).get();
+        return result; */
+        Optional<User> obj = repository.findById(id);
+        return obj.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @PostMapping
@@ -46,10 +47,14 @@ public class UserController {
     }
 
     @PutMapping(value = "/{id}")
-    public User update(@PathVariable Long id, @RequestBody User obj){
-        User result = repository.findById(id).get();
-        updateData(result, obj);
-        return repository.save(result);
+    public void update(@PathVariable Long id, @RequestBody User obj){
+        repository.findById(id)
+        .map(updateData ->{
+            User result = repository.findById(id).get();
+            updateData(result, obj);
+            return repository.save(result);
+        }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
     }
 
     private void updateData(User newObj, User obj) {
@@ -60,14 +65,13 @@ public class UserController {
 
     @DeleteMapping(value = "/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public User delete(@PathVariable Long id){
-        User result = repository.findById(id).get();
-        try {
+    public void delete(@PathVariable Long id){
+        repository.findById(id)
+        .map(p -> {
             repository.deleteById(id);
-        } catch (DataIntegrityViolationException e) {
-            throw new DataIntegrityException("ID não encontrado");
-        }
-        return result;
+            return Void.TYPE;
+        }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        
     }
 }
 
